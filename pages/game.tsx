@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useMoralis, useMoralisWeb3Api, useMoralisWeb3ApiCall } from "react-moralis"
-import { add, } from 'merchant.js'
+import { Map } from 'immutable'
+import { add, buy, inTheBlack, pouchEffectsLedger, addItem, } from 'merchant.js'
 
 const useAxolittles = () => {
     const { user } = useMoralis()
@@ -35,17 +36,39 @@ const useAxolittles = () => {
     return axolittles
 }
 
-const useClicker = () => {
-    const [wallet, setWallet] = useState(new Map<string, number>())
-    const [ledger, setLedger] = useState(new Map<string, number>())
+// Currencies
+const food = "food";
+
+// Items
+const pouch = {
+  axomini: {
+    type: "axomini",
+    cost: () => {
+      return Map({ [food]: -1 });
+    },
+    effect: () => {
+      return Map({ [food]: 100 });
+    }
+  }
+};
+
+const useClicker = (): [{ wallet: Map<string, number>, ledger: Map<string, number> }, {
+    cuddle: () => void
+    buyHelper: () => void
+}] => {
+    const [wallet, setWallet] = useState(Map<string, number>())
+    console.log(wallet.get('food'))
+    const [ledger, setLedger] = useState(Map<string, number>())
+    const loopCallback = useCallback(() => {
+        console.log(wallet.get('food'), `loop`, add(wallet, ledger).get('food'))
+        setWallet(add(wallet, ledger))
+    }, [wallet, ledger])
 
     useEffect(() => {
         let gameLoop: ReturnType<typeof setInterval> | undefined
 
         if (!gameLoop) {
-            gameLoop = setInterval(() => {
-                setWallet(prevWallet => add(prevWallet, ledger))
-            }, 200)
+            gameLoop = setInterval(loopCallback, 5000)
         }
 
         return () => {
@@ -53,12 +76,31 @@ const useClicker = () => {
                 clearInterval(gameLoop)
             }
         }
+    })
+
+    const cuddle = useCallback(() => {
+        setLedger(add(ledger, Map<string, number>({ [food]: 1 })))
     }, [ledger])
+
+    const buyHelper = useCallback(() => {
+        const walletWithCostsApplied = buy(pouch.axomini, wallet);
+        if (!inTheBlack(walletWithCostsApplied)) {
+          return;
+        }
+    
+        const newWallet = addItem(pouch.axomini, walletWithCostsApplied);
+        const ledger = pouchEffectsLedger(Object.values(pouch), newWallet);
+        setWallet(newWallet)
+        setLedger(ledger)
+    }, [wallet])
+
+    return useMemo(() => [{ wallet, ledger }, { cuddle, buyHelper }], [wallet, ledger, cuddle, buyHelper])
 }
 
 function AxoClickerGame() {
     const { authenticate, isAuthenticated, user } = useMoralis()
     const axolittles = useAxolittles()
+    const [{ wallet, ledger }, { cuddle, buyHelper }] = useClicker()
     
     if (!isAuthenticated || !user) {
         return (
@@ -68,14 +110,29 @@ function AxoClickerGame() {
         )
     }
 
+    console.log(wallet.get('food'))
+    
+    const activeAxo = axolittles.find(axo => typeof axo.metadata !== 'undefined')
+
     return (
         <div>
             <h1>Hello {user.get('ethAddress')}</h1>
-            {axolittles?.map(axo => axo.metadata ? (
+            {`${wallet.get(food) ?? 0} Biscuits`}
+            {
+                activeAxo && (
+                    <img
+                        onClick={() => cuddle()}
+                        src={activeAxo.metadata.image}
+                        width={128}
+                        height={128}
+                    />
+                )
+            }
+            {/* {axolittles?.map(axo => axo.metadata ? (
                 <div key={axo.id}>
                     <img src={axo.metadata.image} width="128" height="128" />
                 </div>
-            ) : null)}
+            ) : null)} */}
         </div>
     )
 }
