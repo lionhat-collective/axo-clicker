@@ -3922,7 +3922,7 @@ memdown@^1.0.0:
     ltgt "~2.2.0"
     safe-buffer "~5.1.1"
 
-merchant.js@^1.0.0:
+merchant.js@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/merchant.js/-/merchant.js-1.0.0.tgz#3308b8cb69295b794b8cb8a1f2fd01308248c1d9"
   integrity sha1-Mwi4y2kpW3lLjLih8v0BMIJIwdk=

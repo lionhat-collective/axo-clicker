@@ -11,7 +11,7 @@
   "dependencies": {
     "@walletconnect/web3-provider": "^1.6.5",
     "immutable": "^4.0.0-rc.14",
-    "merchant.js": "^1.0.0",
+    "merchant.js": "1.0.0",
     "moralis": "^0.0.45",
     "next": "11.1.2",
     "react": "17.0.2",
